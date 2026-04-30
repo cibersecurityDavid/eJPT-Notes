@@ -1,95 +1,81 @@
-# 🌐 01_Information_Gathering – Active_DNS_Reconnaissance.md
+# 🌐 Reconocimiento DNS Activo
 
-> **Nota:** En esta fase se interactúa directamente con los servidores DNS del objetivo para obtener registros, intentar transferencias de zona y recopilar información detallada.
+## Tipos de Registros DNS
 
----
-
-## 📚 Tipos de Registros DNS
-
-Antes de lanzar comandos, es fundamental conocer los tipos de registro que se pueden encontrar durante la enumeración activa.
+Antes de ejecutar cualquier comando, es fundamental conocer los distintos tipos de registro que pueden devolver los servidores DNS.
 
 | Registro | Nombre Completo         | Descripción |
 |----------|-------------------------|-------------|
-| **A**    | Address                 | Mapea un nombre de dominio a una dirección **IPv4**. |
-| **AAAA** | IPv6 Address            | Mapea un nombre de dominio a una dirección **IPv6**. |
-| **NS**   | Name Server             | Indica cuáles son los servidores de nombres autoritativos del dominio. |
-| **MX**   | Mail Exchange           | Resuelve el dominio del servidor de correo y su prioridad. |
-| **CNAME**| Canonical Name          | Define un alias para un nombre de dominio (apunta a otro dominio). |
-| **TXT**  | Text                    | Contiene información textual; a menudo se usa para verificación SPF, DKIM, etc. |
-| **HINFO**| Host Information        | Describe el hardware y sistema operativo del host (poco usado). |
-| **SOA**  | Start of Authority      | Indica el servidor DNS primario, el correo del administrador, tiempos de refresco, etc. |
-| **SRV**  | Service Record          | Especifica la ubicación de servicios específicos (ej. LDAP, XMPP). |
-| **PTR**  | Pointer                 | Resuelve una dirección IP en un nombre de host (registro **inverso**). |
+| **A**    | Address                 | Asocia un dominio a una dirección **IPv4** |
+| **AAAA** | IPv6 Address            | Asocia un dominio a una dirección **IPv6** |
+| **NS**   | Name Server             | Indica los servidores de nombres autoritativos del dominio |
+| **MX**   | Mail Exchange           | Resuelve el servidor de correo y su prioridad |
+| **CNAME**| Canonical Name          | Define un alias para un dominio (apunta a otro dominio) |
+| **TXT**  | Text                    | Contiene texto descriptivo; se usa a menudo para SPF, DKIM, etc. |
+| **HINFO**| Host Information        | Describe el hardware y sistema operativo del host (poco utilizado) |
+| **SOA**  | Start of Authority      | Contiene el servidor DNS primario, el correo del administrador y parámetros de refresco |
+| **SRV**  | Service Record          | Especifica la ubicación de servicios concretos (LDAP, XMPP, etc.) |
+| **PTR**  | Pointer                 | Resuelve una dirección IP en un nombre de host (registro **inverso**) |
 
----
+## Transferencia de Zona DNS (AXFR)
 
-## 🔄 DNS Zone Transfer (Transferencia de Zona)
+Cuando un servidor DNS está mal configurado, permite a un servidor secundario (o a un atacante) solicitar una **copia completa** de todos los registros de la zona. Esta operación se denomina **transferencia de zona completa** (AXFR).
 
-Cuando un servidor DNS está mal configurado, permite que un servidor secundario (o un atacante) realice una **copia completa de todos los registros** de una zona. A esto se le llama **AXFR** (full zone transfer).
+> ⚠️ Una transferencia de zona no autorizada expone la estructura interna del dominio y se considera un fallo de seguridad.
 
-> ⚠️ Las transferencias de zona **no autorizadas** son un fallo de seguridad grave, ya que exponen la estructura interna del dominio.
+## Herramientas
 
-### 🔍 Herramientas para intentar la transferencia de zona
+### dnsrecon
 
----
-
-## 🧰 Comandos en Kali
-
-### 1. dnsrecon
-
-Se usa para enumerar registros y probar transferencias de zona.
+Enumera registros e intenta la transferencia de zona.
 
 ```bash
-dnsrecon -d zonetransfer.me          # Enumera todos los registros de la zona (si se permite)
-dnsrecon -d hackersploit.org         # Intenta enumerar el dominio hackersploit.org
+dnsrecon -d zonetransfer.me          # Enumera todos los registros (si se permite AXFR)
+dnsrecon -d hackersploit.org         # Intenta la enumeración sobre el dominio indicado
 ```
 
-### 2. Consulta del archivo /etc/hosts
+### El archivo /etc/hosts
 
-Antes de realizar consultas DNS, Kali puede resolver nombres localmente mediante el archivo `/etc/hosts`.
+Kali puede resolver nombres localmente mediante el archivo `/etc/hosts`, que contiene una lista de nombres de host y sus IPs asociadas.
 
 ```bash
-sudo vim /etc/hosts                  # Contiene una lista de nombres de host y sus IPs; se puede modificar para pruebas
+sudo vim /etc/hosts
 ```
 
-### 3. dnsenum
+### dnsenum
 
-Herramienta similar a dnsrecon, especializada en enumeración y transferencias de zona.
+Cumple una función similar a `dnsrecon`, con capacidades de transferencia de zona.
 
 ```bash
-dnsenum zonetransfer.me              # Intenta transferencia y enumera registros
-dnsenum hackersploit.org             # Sobre el dominio de ejemplo
+dnsenum zonetransfer.me
+dnsenum hackersploit.org
 ```
 
-### 4. dig (Domain Information Groper)
+### dig (Domain Information Groper)
 
-Comando clásico para consultas DNS. Ver su definición:
+Consulta DNS clásica. Permite solicitar una transferencia de zona completa.
 
 ```bash
 whatis dig
 ```
 
-Ejemplo de **transferencia de zona completa** usando `dig`:
-
+Ejemplo de transferencia de zona con `dig`:
 ```bash
 dig axfr @nsztm1.digi.ninja zonetransfer.me
 ```
-> **Explicación:**  
-> `axfr` solicita la transferencia de zona.  
-> `@nsztm1.digi.ninja` especifica el servidor de nombres autoritativo.  
-> `zonetransfer.me` es el dominio de práctica (permite AXFR).
+Explicación:  
+`axfr` → solicita la transferencia de zona.  
+`@nsztm1.digi.ninja` → especifica el servidor de nombres autoritativo.  
+`zonetransfer.me` → dominio de prácticas que permite AXFR.
 
-### 5. fierce
+### fierce
 
-Herramienta de fuerza bruta de subdominios y enumeración DNS. Se usa cuando la transferencia de zona no está permitida.
+Herramienta de fuerza bruta de subdominios y enumeración DNS; especialmente útil cuando la transferencia de zona no está permitida.
 
 ```bash
-man fierce                          # Página de manual
-fierce -h                           # Ayuda
-fierce -dns zonetransfer.me        # Escanea zonetransfer.me en busca de subdominios y registros
+man fierce                  # Página de manual
+fierce -h                   # Ayuda
+fierce -dns zonetransfer.me # Descubre subdominios y registros
 ```
 
----
-
-📌 **Todos estos comandos se ejecutan directamente contra el dominio objetivo.**  
-El dominio **zonetransfer.me** es un entorno de pruebas diseñado para que los estudiantes practiquen transferencias de zona sin temor a consecuencias legales.
+`zonetransfer.me` es un entorno de pruebas diseñado para practicar transferencias de zona sin implicaciones legales.
