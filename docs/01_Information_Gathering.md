@@ -55,9 +55,10 @@ Sitio web que proporciona informes detallados sobre tecnologías, hosting e hist
 
 ### Reconocimiento DNS con dnsrecon y dnsdumpster
 ```dnsrecon -h```
+
 ```dnsrecon -d hackersploit.org```
 
-```dnsrecon -d <dominio>: herramienta de enumeración DNS que realiza varios tipos de consultas.```
+dnsrecon -d <dominio>: herramienta de enumeración DNS que realiza varios tipos de consultas.
 
 Recomendación: usar dnsdumpster.com para obtener la información DNS organizada visualmente.
 
@@ -173,7 +174,7 @@ dig axfr @<servidor_dns> <dominio>: intenta una transferencia de zona completa s
 
 fierce: herramienta de enumeración DNS diseñada para localizar espacios de nombres internos y externos.
 
-# 2. Escaneo y Enumeración con Nmap
+## 2. Escaneo y Enumeración con Nmap
 
 ### Descubrimiento de hosts activos
 ```sudo nmap -sn 192.168.1.0/24```
@@ -220,7 +221,7 @@ netdiscover: escaneo ARP pasivo/activo para identificar hosts en una red local.
 ### Sobre puertos filtrados en Nmap
 Nmap no puede determinar si están abiertos porque un firewall o filtro descarta los paquetes. Esto ralentiza el escaneo al reintentar las sondas. A veces responden con ICMP tipo 3 código 13 (comunicación prohibida).
 
-# 3. Enumeración de Servicios Específicos
+## 3. Enumeración de Servicios Específicos
 
 ### 3.1 Enumeración Web y Directorios
 
@@ -294,7 +295,7 @@ Password: password@123
 SHOW DATABASES;
 -- Aparece: FLAG4_7591346de419484d98af421a412d9833
 
-# 4. Uso de Metasploit para Enumeración
+## 4. Uso de Metasploit para Enumeración
 
 ### 4.1 Importar resultados de Nmap a MSF
 
