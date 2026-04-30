@@ -1,10 +1,8 @@
-# 🔎 01_Information_Gathering – Nmap_Live_Host_Discovery.md
+# 📡 Descubrimiento de Hosts Activos (Ping Sweep)
 
-## 📡 Identificación de Hosts Activos (Ping Sweep)
+Antes de cualquier escaneo de puertos, es necesario identificar qué dispositivos están encendidos en la red. Nmap permite esta comprobación sin realizar un escaneo de puertos real.
 
-Antes de cualquier escaneo de puertos, es necesario saber qué dispositivos están encendidos en la red. Nmap permite hacer esta comprobación sin realizar un escaneo de puertos real.
-
-### 🟢 Nmap `-sn` (Ping Sweep)
+## 🟢 Nmap `-sn` (Ping Sweep)
 
 ```bash
 sudo nmap -sn <ip>/<subred>
@@ -15,11 +13,11 @@ sudo nmap -sn <ip>/<subred>
 sudo nmap -sn 192.168.1.0/24
 ```
 
-Este comando **no escanea puertos** (`-sn`), únicamente descubre hosts activos mediante peticiones ICMP y otras sondas.
+El flag `-sn` **inhabilita el escaneo de puertos** y se limita a descubrir hosts activos mediante peticiones ICMP y otras sondas.
 
-### 🔵 NetDiscover (Pasivo con ARP)
+## 🔵 NetDiscover (Escucha ARP pasiva)
 
-Alternativa para redes locales. Escucha peticiones ARP y muestra los dispositivos activos.
+Alternativa para redes locales. Escucha las peticiones ARP para mostrar los dispositivos activos sin enviar tráfico de escaneo de puertos.
 
 ```bash
 # Instalación
@@ -28,10 +26,6 @@ sudo apt-get install netdiscover
 # Ejecución en interfaz eth0 para la subred indicada
 netdiscover -i eth0 -r 192.168.1.0/24
 ```
-
-Así se pueden enumerar los dispositivos de una red local sin enviar tráfico activo de escaneo de puertos.
-
----
 
 ## 🚪 Escaneo de Puertos con Nmap
 
@@ -43,25 +37,25 @@ Una vez identificado un host activo (`<ip>`), se procede a escanear sus puertos.
 nmap <ip>
 ```
 
-Nmap por defecto escanea los **1000 puertos TCP más utilizados**. No recorre todo el rango (1-65535).
+Por defecto, Nmap escanea los **1000 puertos TCP más utilizados**. No recorre el rango completo 1-65535.
 
 ### 🔸 Bandera `-Pn` (Forzar escaneo)
 
-En ocasiones los firewalls bloquean las sondas de descubrimiento. La opción `-Pn` **omite el descubrimiento de host** y fuerza el escaneo de puertos como si el objetivo estuviera activo.
+Cuando los firewalls bloquean las sondas de descubrimiento, la opción `-Pn` **omite el descubrimiento de host** y fuerza el escaneo de puertos como si el objetivo estuviera activo.
 
 ```bash
 nmap -Pn <ip>
 ```
 
-Esto muestra una lista de puertos (por ejemplo, 993 puertos cerrados o filtrados) y también el servicio en los puertos abiertos.
+Esto muestra una lista de puertos (por ejemplo, 993 cerrados o filtrados) junto con el servicio detectado en los puertos abiertos.
 
 ### 🔸 Control del rango de puertos
 
 | Comando / Flag | Descripción |
 |----------------|-------------|
 | `nmap -Pn -p- <ip>` | Todos los puertos (1-65535) |
-| `-p 80` | Solo puerto 80 |
-| `-p 8080` | Solo puerto 8080 |
+| `-p 80` | Solo el puerto 80 |
+| `-p 8080` | Solo el puerto 8080 |
 | `-p 1-1000` | Del puerto 1 al 1000 |
 | `-F` | Escaneo rápido de los 100 puertos principales |
 | `-sU` | Escaneo de puertos **UDP** |
@@ -84,16 +78,10 @@ nmap -Pn -F -sV -O -sC <ip> -v # Con detección de SO, scripts por defecto y ver
 | `-sC` | Ejecuta los scripts por defecto de Nmap |
 | `-v` | Modo verbose (detalles durante el escaneo) |
 
----
-
 ## 🛡️ Entendiendo los Puertos Filtrados
 
-Nmap no puede determinar si un puerto está abierto porque el filtrado de paquetes impide que sus sondas lleguen al puerto. El filtrado puede originarse en un firewall dedicado, reglas de router o software de firewall en el host.
+Nmap no puede determinar si un puerto está abierto cuando el filtrado de paquetes impide que sus sondas lleguen a él. El filtrado puede provenir de un firewall dedicado, reglas de router o software de firewall en el host.
 
-Estos puertos **frustran a los atacantes** porque proporcionan muy poca información. A veces responden con mensajes ICMP de error (tipo 3, código 13: destino inalcanzable, comunicación prohibida), pero lo más común es que los filtros simplemente descarten las sondas sin responder.
+Estos puertos **frustran a los atacantes** porque apenas aportan información. A veces responden con mensajes ICMP de error (tipo 3, código 13: destino inalcanzable, comunicación prohibida), pero lo más habitual es que los filtros descarten las sondas sin responder.
 
-Para manejar esta incertidumbre, Nmap reintenta varias veces por si la sonda se perdió por congestión de red, lo que ralentiza el escaneo.
-
----
-
-**Nota:** Los comandos aquí mostrados se ejecutan sobre una IP o rango de IP de ejemplo; en un entorno real se sustituyen por los datos del objetivo.
+Para mitigar falsos negativos, Nmap reintenta varias veces, lo que retrasa el escaneo.
