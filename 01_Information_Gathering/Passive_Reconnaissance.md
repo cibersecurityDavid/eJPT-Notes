@@ -179,8 +179,3 @@ theHarvester -d ine.com -b duckduckgo,bing,yahoo,urlscam,pentesttool
 
 **have i been pwned?**  
 Sitio web donde se comprueba si un correo o teléfono ha sido vulnerado en filtraciones.
-
----
-
-**Fin de la recopilación pasiva.**  
-El siguiente documento `Active_DNS_Reconnaissance.md` cubrirá los registros DNS, transferencia de zona, `dig`, `fierce` y la fase activa.
