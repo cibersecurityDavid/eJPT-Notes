@@ -1,73 +1,53 @@
-# 🔍 Etapa 1: 01_Information_Gathering – Passive_Reconnaissance.md
+# 🔍 Recopilación Pasiva de Información
 
-> **Nota importante:** Este archivo conserva **todas** las notas originales, comandos, herramientas y técnicas descritas en el laboratorio. Se ha ordenado y formateado sin omitir ningún paso.
+## Introducción a la Fase de Recolección
 
----
+La primera fase de cualquier prueba de penetración consiste en recolectar información sobre una persona, empresa, sitio web o sistema. Cuanto más se conozca al objetivo, mayores serán las probabilidades de éxito en las etapas finales.
 
-## 📌 Introducción a la Fase de Recolección
+La información obtenida permite, por ejemplo:
 
-La **primera fase de cualquier prueba de penetración** consiste en recolectar información sobre una persona, empresa, sitio web o sistema.  
-*“El que más sabe sobre su objetivo es el que más éxito tendrá en las etapas finales de la prueba”*.
+- Acceder mediante **pivoting** a una red interna.
+- Realizar **ataques de phishing** a empleados.
+- Enviar **archivos maliciosos** (Word/Excel con macros) para obtener credenciales o acceso al sistema.
 
-Esta información puede ser útil en la fase de explotación, por ejemplo para:
-
-* Acceder mediante **pivoting** a una red interna.
-* Realizar **ataques de phishing** a empleados.
-* Enviar **archivos maliciosos** (Word/Excel con macros) para obtener credenciales o acceso al sistema.
-
----
-
-## 🛡️ Tipos de Recopilación
+## Tipos de Recopilación
 
 ### ✅ Recopilación Pasiva
-Se obtiene información **sin interactuar directamente** con el objetivo.  
-**Ejemplo:** evaluar un sitio web desde la perspectiva de un usuario final, tecnologías, IP del servidor, etc.
+Consiste en obtener información **sin interactuar directamente** con el objetivo. Se evalúa desde la perspectiva de un usuario final, analizando tecnologías, la IP del servidor real, etc.
 
-📋 **Datos recolectables:**
-* IP y DNS
-* Nombres de dominio y subdominios
-* Correos electrónicos y redes sociales
-* Tecnologías usadas por el sitio
-* Identificación de subdominios
+**Datos recolectables:**
+- Direcciones IP y DNS.
+- Nombres de dominio y subdominios.
+- Correos electrónicos y redes sociales.
+- Tecnologías empleadas por el sitio.
+- Identificación de subdominios.
 
 ### ⚡ Recopilación Activa
-Se recopila información **participando activamente** con el sistema objetivo.  
-**Ejemplo:** después de la recolección pasiva, ejecutar un escaneo de puertos con **Nmap** sobre la IP real.
+Implica **participar activamente** con el sistema objetivo. Por ejemplo, tras identificar la IP en la fase pasiva, se puede realizar un escaneo de puertos con Nmap para detectar puertos abiertos y los servicios que se ejecutan en ellos. Esta información resulta clave para encontrar vulnerabilidades explotables.
 
-📋 **Datos recolectables:**
-* Puertos abiertos en el sistema objetivo
-* Infraestructura interna de la red objetivo
-* Enumerar información del sistema objetivo
+> ⚠️ **Se requiere permiso escrito de la empresa** para efectuar pruebas de penetración. Escanear sin autorización es ilegal.
 
-> ⚠️ **Se necesita permiso escrito de la empresa** para realizar pruebas de penetración. Escanear sin autorización es ilegal.
+## Herramientas y Técnicas de Recopilación Pasiva
 
----
-
-## 🧰 Herramientas y Técnicas de Recopilación Pasiva
-
-### 🔧 Comandos básicos en Kali
+### Comandos básicos en Kali
 
 ```bash
 whatis host
 host hackersploit.org          # Muestra la IP del dominio
 ```
 
----
+### Archivos públicos del sitio
 
-### 🕸️ Archivos públicos del sitio
-
-* **robots.txt**  
-  Indica qué rutas no deben ser indexadas por motores de búsqueda.
-  ```text
+- **robots.txt**  
+  Indica qué rutas no deben ser indexadas por los motores de búsqueda.
+  ```
   Disallow: /wp-admin/   (WordPress)
   ```
 
-* **sitemap.xml**  
+- **sitemap.xml**  
   Mapa del sitio con rutas útiles.
 
----
-
-### 🔎 Identificación de tecnologías
+### Identificación de tecnologías
 
 | Herramienta | Tipo | Uso |
 |------------|------|------|
@@ -75,88 +55,72 @@ host hackersploit.org          # Muestra la IP del dominio
 | **Wappalyzer** | Extensión navegador | Similar a BuiltWith |
 | **WhatWeb** | Línea de comandos (Kali) | `whatweb hackersploit.org` |
 
----
-
-### 📥 Descarga de sitio completo con HTTrack
+### Descarga completa del sitio con HTTrack
 
 ```bash
 # Instalación en Kali
 sudo apt-get install webhttrack
 ```
 
-HTTrack permite descargar el sitio web completo para analizar el código fuente en local.
+HTTrack copia el sitio web en local para analizar el código fuente sin conexión.
 
----
-
-### 🌍 WHOIS y NetCraft
+### WHOIS y NetCraft
 
 ```bash
-whois hackersploit.org    # Información del dominio, registrador, fechas, etc.
+whois hackersploit.org    # Información del dominio: registrador, fechas, etc.
 ```
 
-**NetCraft** (vía navegador) también da información histórica y de hosting.
+NetCraft (vía navegador) también ofrece datos históricos y de hosting.
 
----
+### Reconocimiento de DNS (pasivo)
 
-### 🌐 Reconocimiento de DNS (pasivo)
-
-* **dnsrecon (uso básico)**
+- `dnsrecon` en modo básico:
   ```bash
   dnsrecon -d hackersploit.org
   ```
-* **dnsdumpster.com**  
-  Recomendado por su forma práctica de organizar la información.
+- **dnsdumpster.com** organiza la información de forma gráfica y práctica.
 
----
-
-### 🚧 Detección de WAF con wafw00f
+### Detección de WAF con wafw00f
 
 ```bash
-wafw00f -l                     # Lista de firewalls que detecta
-wafw00f hackersploit.org       # Indica si está detrás de Cloudflare, etc.
+wafw00f -l                     # Lista los firewalls que detecta
+wafw00f hackersploit.org       # Indica si el sitio usa Cloudflare u otro WAF
 ```
 
----
-
-### 🧩 Enumeración pasiva de subdominios con Sublist3r
+### Enumeración pasiva de subdominios con Sublist3r
 
 ```bash
 sublist3r -d hackersploit.org -e google,yahoo
 ```
-> 🔒 Usar VPN para evitar que Google bloquee las solicitudes.
 
----
+> 🔒 Se recomienda usar VPN para que Google no bloquee las solicitudes.
 
-### 🎯 Google Dorks (filtros de búsqueda)
+### Google Dorks (filtros de búsqueda)
 
-Permiten encontrar información sensible pública. A continuación se muestran los ejemplos de las notas:
+Permiten localizar información sensible expuesta públicamente. A continuación se muestran los filtros más utilizados:
 
-| Operador/Filtro | Ejemplo | Descripción |
-|-----------------|---------|-------------|
-| `site:` | `site:ine.com inurl:admin` | Buscar páginas con "admin" en la URL |
-| `site:` + `inurl:` | `site:ine.com inurl:forum` | Buscar "forum" en la URL de ese sitio |
-| `site:*` | `site:*.ine.com` | Todos los subdominios |
-| `site:*` + `inurl:` | `site:*ine.com inurl:admin` | Subdominios con admin en la URL |
-| `site:*` + `intitle:` | `site:*ine.com intitle:admin` | Subdominios con admin en el título |
-| `filetype:` | `site:ine.com filetype:pdf` | Archivos PDF en el sitio |
-| `filetype:` | `site:ine.com filetype:pdf marketing` | PDF que contengan "marketing" |
-| `filetype:` | `site:ine.com filetype:xlsx` | Hojas de cálculo |
-| `filetype:` | `site:ine.com filetype:docx` | Documentos Word |
-| `filetype:` | `site:ine.com filetype:zip` | Archivos comprimidos |
-| `filetype:` | `site:ine.com filetype:docs` | Documentos genéricos |
-| `site:` + texto | `site:ine.com employees` | Buscar la palabra "employees" |
-| `site:` + texto | `site:ine.com instructors` | Buscar "instructors" |
-| `intitle:` | `intitle:index of` | Directorios de listado público |
-| `inurl:` | `inurl:auth_user_file.txt` | Posibles archivos de contraseñas |
-| `inurl:` | `inurl:passwd.txt` | Archivos de contraseñas planas |
+| Operador/Filtro       | Ejemplo                                      | Descripción |
+|-----------------------|----------------------------------------------|-------------|
+| `site:`               | `site:ine.com inurl:admin`                  | Páginas con "admin" en la URL |
+| `site:` + `inurl:`    | `site:ine.com inurl:forum`                  | "forum" en la URL |
+| `site:*`              | `site:*.ine.com`                            | Todos los subdominios |
+| `site:*` + `inurl:`   | `site:*ine.com inurl:admin`                 | Subdominios con admin en la URL |
+| `site:*` + `intitle:` | `site:*ine.com intitle:admin`              | Subdominios con admin en el título |
+| `filetype:`           | `site:ine.com filetype:pdf`                | Archivos PDF |
+| `filetype:`           | `site:ine.com filetype:pdf marketing`      | PDF con la palabra "marketing" |
+| `filetype:`           | `site:ine.com filetype:xlsx`               | Hojas de cálculo |
+| `filetype:`           | `site:ine.com filetype:docx`               | Documentos Word |
+| `filetype:`           | `site:ine.com filetype:zip`                | Archivos comprimidos |
+| `filetype:`           | `site:ine.com filetype:docs`               | Documentos genéricos |
+| `site:` + texto       | `site:ine.com employees`                    | Búsqueda de "employees" |
+| `site:` + texto       | `site:ine.com instructors`                  | Búsqueda de "instructors" |
+| `intitle:`            | `intitle:index of`                           | Directorios con listado público |
+| `inurl:`              | `inurl:auth_user_file.txt`                  | Posibles archivos de contraseñas |
+| `inurl:`              | `inurl:passwd.txt`                           | Archivos de contraseñas en texto plano |
 
-Más información en **Google Hacking Database (GHDB)**.
+Más combinaciones se encuentran en la **Google Hacking Database (GHDB)**. También se puede emplear **Wayback Machine** para ver versiones anteriores de los sitios.
 
-También se puede utilizar **Wayback Machine** para ver versiones anteriores del sitio.
-
----
-
-### 📧 Enumeración de correos electrónicos
+### Enumeración de correos electrónicos
 
 #### theHarvester
 
@@ -166,16 +130,12 @@ theHarvester --help
 ```
 
 Ejemplos de uso:
-
 ```bash
 theHarvester -d INE -b duckduckgo
 theHarvester -d INE -b duckduckgo,bing,yahoo
 theHarvester -d ine.com -b duckduckgo,bing,yahoo,urlscam,pentesttool
 ```
 
----
+### Filtraciones públicas de credenciales
 
-### 🔓 Verificar filtraciones públicas
-
-**have i been pwned?**  
-Sitio web donde se comprueba si un correo o teléfono ha sido vulnerado en filtraciones.
+**Have I Been Pwned?** permite comprobar si una dirección de correo o un número de teléfono ha sido comprometido en filtraciones de datos.
